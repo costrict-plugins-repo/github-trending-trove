@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+*.egg
+dist/
+build/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Data (raw downloads, built Parquet) — only the top-level cache dir.
+# Package-bundled artifacts (e.g. packages/crosswalk/src/crosswalk/data/) are
+# legitimately committed.
+/data/
+!/data/.gitkeep
+
+# Environment
+.env
+.env.local
+
+# Claude Code local overrides
+.claude/settings.local.json
+
+# Editor
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Docs
+site/
+
+# Node (web/)
+node_modules/
+.next/
+.observablehq/cache
+dist-web/
+
+# Notebooks
+.ipynb_checkpoints/

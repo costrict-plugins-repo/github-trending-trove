@@ -1,0 +1,118 @@
+# Data layout — FDA novel drug approvals index
+
+## The bundle
+
+- Parquet: `https://troveproject.com/data/fda_approvals_nme_recent.parquet`
+- JSON: `https://troveproject.com/data/fda_approvals_nme_recent.json`
+
+218 rows covering FDA novel drug approvals for calendar years 2021–2024. v0.2 ingests both regulatory centers: 192 CDER (NMEs + novel antibody BLAs from the annual *Novel Drug Approvals* pages) plus 26 CBER (cell and gene therapies from the *Approved Cellular and Gene Therapy Products* page).
+
+## JSON envelope shape
+
+The JSON is **not** a top-level array. It's an object:
+
+```json
+{
+  "totals": {
+    "drugs": 218,
+    "year_min": 2021,
+    "year_max": 2024,
+    "by_year": {"2021": 55, "2022": 42, "2023": 61, "2024": 60}
+  },
+  "rows": [ /* one object per drug */ ]
+}
+```
+
+When iterating, use `data["rows"]`, not `data` directly.
+
+## Columns
+
+| Column | Description |
+|--------|-------------|
+| `year` | Calendar year of approval |
+| `drug_name` | FDA brand name |
+| `active_ingredient` | International nonproprietary or USAN name |
+| `sponsor` | Company that holds the application. CDER: parsed from drugs@FDA, title-cased from FDA's all-caps stored form. CBER: parsed from the per-product page's "Manufacturer" field. 217 of 218 rows populated. |
+| `approval_date` | Approval date (for CBER, the *earliest* approval letter in the reverse-chronological history — i.e. the original approval, not later supplements) |
+| `indication` | FDA-approved use string |
+| `application_number` | NDA / BLA application number (6 digits). For CBER products this is the STN. |
+| `application_type` | "NDA" or "BLA". CBER products are always BLA. |
+| `label_pdf_url` | Direct link to the FDA-approved label PDF (CDER) or Package Insert (CBER). |
+| `drugs_at_fda_url` | CDER: drugs@FDA application-overview URL. CBER: per-product FDA page under `fda.gov/vaccines-blood-biologics/` — that page is the canonical hub for the approval letter, package insert, clinical review memo, and Summary Basis for Regulatory Action. |
+| `trials_snapshot_url` | Drug Trials Snapshot URL (CDER only; CBER doesn't publish Trials Snapshots — `null`) |
+| `regulatory_center` | `"CDER"` or `"CBER"`. CDER = small molecules + most antibody biologics. CBER = cell and gene therapies. |
+
+## Query patterns
+
+DuckDB is the canonical query path, but **don't assume it's installed.** Many environments have only `curl` and `python3` stdlib. The fallback below is fully equivalent for lookup-style queries.
+
+### With DuckDB (CLI or Python)
+
+**Find a drug by name:**
+
+```sql
+SELECT * FROM read_parquet('https://troveproject.com/data/fda_approvals_nme_recent.parquet')
+WHERE LOWER(drug_name) LIKE '%hemophilia%'
+   OR LOWER(active_ingredient) LIKE '%hemophilia%';
+```
+
+**Recent approvals in a therapeutic area:**
+
+```sql
+SELECT drug_name, active_ingredient, approval_date, indication
+FROM read_parquet('https://troveproject.com/data/fda_approvals_nme_recent.parquet')
+WHERE LOWER(indication) LIKE '%cystic fibrosis%'
+ORDER BY approval_date DESC;
+```
+
+### Without DuckDB (curl + python3 stdlib only)
+
+Equally fast for the lookup queries this skill does most often. **Note the JSON envelope** — iterate `data["rows"]`, not `data`.
+
+```bash
+curl -s 'https://troveproject.com/data/fda_approvals_nme_recent.json' \
+  | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+hits = [r for r in data['rows']
+        if 'hemophilia' in (r.get('drug_name') or '').lower()
+        or 'hemophilia' in (r.get('active_ingredient') or '').lower()]
+for r in hits:
+    print(r['drug_name'], r['application_type'], r['application_number'], r['approval_date'])
+"
+```
+
+For a single drug lookup, the smallest working invocation:
+
+```bash
+curl -s 'https://troveproject.com/data/fda_approvals_nme_recent.json' \
+  | python3 -c "import json,sys; d=json.load(sys.stdin); print([r for r in d['rows'] if 'tryngolza' in (r.get('drug_name') or '').lower()])"
+```
+
+## The actual approval-package documents
+
+The Parquet bundle is just an *index*. The actual content (medical review, statistical review, etc.) lives at `drugs_at_fda_url`. That URL is FDA's application overview page; it links to every approval-package document FDA released for that drug.
+
+**URL pattern for the application overview:**
+
+```
+https://www.accessdata.fda.gov/scripts/cder/daf/index.cfm?event=overview.process&ApplNo={app_no}
+```
+
+That page is HTML. To get the actual document URLs, you can:
+
+1. **Fetch the application-overview HTML and parse it** — links to "Approval Letter," "Label," "Medical Review," "Statistical Review," etc., with PDF URLs.
+2. **Construct PDF URLs directly when the pattern is known.** Approval-package PDFs typically live at `https://www.accessdata.fda.gov/drugsatfda_docs/nda/{year}/{appl_no}Orig1s000{doc_code}.pdf` where `{doc_code}` is one of the codes in `references/document_types.md` (e.g., `MedR` for medical review, `StatR` for statistical review). The exact filename varies, so the application overview is the more reliable source.
+
+For most questions, follow the `drugs_at_fda_url`, identify the right document, fetch the PDF, and read it.
+
+## Fetching PDFs
+
+PDFs at accessdata.fda.gov are public, no auth, often 1–10 MB each. Fetch with a normal HTTP GET. Claude can read PDFs directly when they're attached to a query.
+
+## What's NOT in the bundle
+
+- **Document text content.** The bundle is metadata; document text is in the PDFs at FDA. Fetch at query time.
+- **Older approvals (pre-2021).** Out of scope for v0.1.
+- **Generic (ANDA) and supplemental (sNDA) approvals.** The bundle covers FDA's "Novel Drug Approvals" curated lists only.
+- **Sponsor name.** Now in the index (added in v0.2). Sourced from each drug's drugs@FDA application overview page.

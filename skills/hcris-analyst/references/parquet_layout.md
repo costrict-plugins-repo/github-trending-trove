@@ -1,0 +1,170 @@
+# Data layout — Parquet bundles served from troveproject.com
+
+DuckDB can query Parquet files over HTTPS natively. Treat each URL below as a virtual table.
+
+## Bundles
+
+| URL | Description | Rows × cols |
+|-----|-------------|-------------|
+| `https://troveproject.com/data/hcris_2023_wide.parquet` | HCRIS Hospital 2552-10, FY2023, pivoted wide. One row per CCN-keyed facility, every dictionary variable as a named column. | ~6,100 × 48 |
+| `https://troveproject.com/data/schedule_h_2022.parquet` | IRS 990 Schedule H filings for tax year 2022. One row per filing (originals + amendments — dedupe per EIN if needed). | ~1,500 × 23 |
+| `https://troveproject.com/data/community_benefit_gap_2022.parquet` | Pre-joined matched hospital dataset: HCRIS S-10 charity care summed per EIN, joined to Schedule H 7a, with `charity_gap` and `hcris_fy_end_dt` for alignment filtering. | 1,334 × 20 |
+| `https://troveproject.com/data/community_benefit_gap_2022.json` | Same matched hospital dataset, JSON (UI-shaped — non-computable rows excluded, includes `gap_pct`). Use the Parquet for analysis; this is for the web UI. | 1,295 |
+
+## JSON envelope shape
+
+The JSON bundle is **not** a top-level array. It's an object:
+
+```json
+{
+  "totals": {
+    "matched": 1334,
+    "computable": 1295,
+    "aligned": 372,
+    "aligned_material": 228,
+    "median_aligned_material_gap_pct": 0.2509,
+    "aligned_material_big_gaps": 53
+  },
+  "rows": [ /* one object per system, alphabetical */ ]
+}
+```
+
+When iterating, use `data["rows"]`, not `data` directly.
+
+## Query patterns
+
+DuckDB is the canonical query path. For environments without DuckDB, use the curl + python3 stdlib fallback at the bottom of this section — fully equivalent for lookup queries against the JSON.
+
+**Bash (DuckDB CLI):**
+
+```bash
+duckdb -c "SELECT prvdr_num, hospital_name, total_beds, charity_care_cost
+FROM read_parquet('https://troveproject.com/data/hcris_2023_wide.parquet')
+WHERE prvdr_num = '330101'"
+```
+
+**Python:**
+
+```python
+import duckdb
+
+duckdb.sql("""
+    SELECT sched_h_organization_name AS system,
+           hcris_charity_care_cost,
+           sched_h_financial_assistance_at_cost,
+           charity_gap AS cross_form_difference
+    FROM read_parquet('https://troveproject.com/data/community_benefit_gap_2022.parquet')
+    WHERE LOWER(sched_h_organization_name) LIKE '%yale%'
+       OR LOWER(hospital_name) LIKE '%yale%'
+    ORDER BY system
+""").df()
+```
+
+**Aligned cohort distribution:**
+
+```python
+duckdb.sql("""
+    SELECT
+      COUNT(*) AS n,
+      MEDIAN(ABS(charity_gap)) AS median_abs_difference,
+      PERCENTILE_CONT(0.9) WITHIN GROUP (ORDER BY ABS(charity_gap)) AS p90_abs_difference
+    FROM read_parquet('https://troveproject.com/data/community_benefit_gap_2022.parquet')
+    WHERE ABS(EXTRACT(EPOCH FROM (hcris_fy_end_dt - sched_h_tax_period_end))/2629800) <= 1
+      AND ABS(hcris_charity_care_cost) >= 500000
+      AND ABS(sched_h_financial_assistance_at_cost) >= 500000
+""").df()
+```
+
+**Pre-joining HCRIS to crosswalk and Schedule H in DuckDB:**
+
+```sql
+WITH cw AS (
+  SELECT DISTINCT ccn, ein FROM 'https://troveproject.com/data/community_benefit_gap_2022.parquet'
+),
+hcris AS (
+  SELECT prvdr_num, hospital_name, total_beds, charity_care_cost, fy_end_dt
+  FROM read_parquet('https://troveproject.com/data/hcris_2023_wide.parquet')
+)
+SELECT cw.ein, hcris.*
+FROM hcris JOIN cw ON hcris.prvdr_num = cw.ccn
+WHERE hcris.charity_care_cost > 1e7
+ORDER BY hcris.charity_care_cost DESC
+LIMIT 20;
+```
+
+(The full CCN↔EIN crosswalk is bundled inside the `crosswalk` Python package — see "Local Python access" below — but the matched hospital dataset already does the join for you.)
+
+## Key joins
+
+- **HCRIS to crosswalk:** join `hcris_2023_wide.prvdr_num` to crosswalk `ccn`. Multi-facility systems will produce multiple rows per EIN.
+- **Schedule H to crosswalk:** join `schedule_h_2022.ein` to crosswalk `ein`.
+- **Using the pre-joined table:** `community_benefit_gap_2022.parquet` already does both joins and aggregates HCRIS to the EIN level. Use that table for cross-form questions; use the raw HCRIS or Schedule H tables for facility-level or filing-level questions.
+
+## Important columns on the matched hospital dataset
+
+| Column | What it means |
+|--------|---------------|
+| `ein` | IRS EIN (zero-padded 9-char). The system-level identifier. |
+| `ccn_count` | How many HCRIS-reporting facilities are rolled up under this EIN. >1 means a multi-facility system; aggregation can smooth or amplify per-facility differences. |
+| `hospital_name` | Lead facility name from HCRIS (the first CCN's name). |
+| `sched_h_organization_name` | The 990 filer name (system parent — usually mixed case). |
+| `hcris_charity_care_cost` | Sum of HCRIS Worksheet S-10 charity-care cost across all CCNs sharing this EIN. |
+| `hcris_uncompensated_care_cost` | Sum of HCRIS uncompensated-care cost (charity + Medicare bad debt + non-Medicare bad debt). |
+| `hcris_total_operating_expenses` | Sum of HCRIS total operating expenses. Use as denominator. |
+| `hcris_fy_end_dt` | The latest fiscal-year end across the system's CCNs. Use this against `sched_h_tax_period_end` to gauge alignment. |
+| `sched_h_financial_assistance_at_cost` | Schedule H Part I line 7a (financial assistance at cost). |
+| `sched_h_total_community_benefit` | Schedule H Part I line 7k (total community benefit). |
+| `sched_h_total_expenses` | Total expenses from main 990 (denominator for the 7k ratio). |
+| `sched_h_tax_period_end` | End date of the 990 tax period. |
+| `charity_gap` | Cross-form difference: `hcris_charity_care_cost - sched_h_financial_assistance_at_cost`. NULL if either side is blank. |
+| `community_benefit_pct_of_expenses` | Total community benefit as a **percentage (0-100)** of Schedule H total expenses — `sched_h_total_community_benefit / sched_h_total_expenses * 100`. Same-form denominator, so this is the internally consistent measure and the one to quote. NULL when total expenses are 0 or missing. |
+| `community_benefit_pct_of_hcris_expenses` | The same numerator over `hcris_total_operating_expenses` (0-100). Cross-form, so it inherits every scope and period difference between the two filings — treat as a sanity check only, and don't quote it for rows that aren't period-aligned and same-scale. |
+| `svi_overall_pct` | CDC Social Vulnerability Index 2022, county-level overall summary percentile (0-100, higher = more vulnerable). Median across the system's CCN home counties. ~98% coverage. Home-county proxy only; not a service-area measure. |
+| `svi_socio_pct`, `svi_household_pct`, `svi_minority_pct`, `svi_housing_pct` | The four SVI sub-themes: socioeconomic status, household characteristics (age/disability/single-parent/ESL), racial & ethnic minority status, housing type & transportation. Same scale and source. |
+
+## The alignment filter
+
+For most cross-form questions, you want to filter to systems where HCRIS and 990 cover the same fiscal year. The `community_benefit_gap_2022.parquet` table includes both `hcris_fy_end_dt` and `sched_h_tax_period_end`. A row is "aligned" when `|hcris_fy_end_dt - sched_h_tax_period_end| ≤ 1 month`; ~28% of rows pass this filter.
+
+```sql
+SELECT *,
+  ROUND(ABS(EXTRACT(EPOCH FROM (hcris_fy_end_dt - sched_h_tax_period_end))) / 2629800) AS months_apart
+FROM read_parquet('https://troveproject.com/data/community_benefit_gap_2022.parquet')
+WHERE ROUND(ABS(EXTRACT(EPOCH FROM (hcris_fy_end_dt - sched_h_tax_period_end))) / 2629800) <= 1
+```
+
+## Without DuckDB (curl + python3 stdlib only)
+
+If DuckDB isn't installed, fetch the JSON envelope and iterate `rows` directly. Equivalent to the SQL above for lookup-style queries:
+
+```bash
+curl -s 'https://troveproject.com/data/community_benefit_gap_2022.json' \
+  | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+rows = [r for r in data['rows']
+        if 'yale' in (r.get('system') or '').lower()
+        or 'yale' in (r.get('facility') or '').lower()]
+for r in rows[:5]:
+    print(r['system'], r['ein'], r['hcris_charity'], r['fa_990'], r['gap'])
+"
+```
+
+This works without any Python packages — just python3 stdlib. Performance is fine for lookup queries against ~1,300 rows; if you need analytical SQL (joins, aggregations), use DuckDB.
+
+## Local Python access (alternative to HTTPS)
+
+If you have the `trove` repo cloned and `uv sync --all-packages` has been run, you can also import the Python packages directly:
+
+```python
+from hcris import parse_zip, pivot_wide, load_dictionary
+from form990 import parse_zip as parse_990
+from crosswalk import load_seed
+from analytics import community_benefit_gap
+
+wide = pivot_wide(parse_zip("data/raw/hcris/HOSP10FY2023.zip"))
+crosswalk = load_seed()  # 3,523 rows, bundled with the package
+gap = community_benefit_gap(wide, sched_h, crosswalk)
+```
+
+This is faster for repeated queries and gives you full pandas dataframes; the HTTPS path is for environments without the repo (Claude.ai, ad-hoc analysis from another machine).

@@ -1,0 +1,130 @@
+"""Compare hospital community benefit on HCRIS Worksheet S-10 vs. IRS Form 990 Schedule H."""
+
+from __future__ import annotations
+
+import pandas as pd
+
+
+def community_benefit_gap(
+    hcris_wide: pd.DataFrame,
+    schedule_h: pd.DataFrame,
+    crosswalk: pd.DataFrame,
+) -> pd.DataFrame:
+    """Per nonprofit hospital system (one row per EIN) compare HCRIS to 990 Schedule H.
+
+    HCRIS reports per-facility (CCN). 990s are filed per parent organization (EIN).
+    A single EIN often covers multiple CCNs, so HCRIS facility-level numbers are
+    summed across all CCNs sharing an EIN before comparing.
+
+    Returns a DataFrame ranked by absolute charity-care gap (HCRIS minus 990) so
+    the largest discrepancies surface at the top. Columns:
+
+    - ``ein``, ``ccn_count``, ``hospital_name`` (lead facility)
+    - ``hcris_charity_care_cost`` — summed across the system's CCNs
+    - ``hcris_uncompensated_care_cost``
+    - ``hcris_total_operating_expenses``
+    - ``sched_h_financial_assistance_at_cost``
+    - ``sched_h_total_community_benefit``
+    - ``sched_h_total_expenses``
+    - ``charity_gap`` — HCRIS charity care minus Schedule H 7a financial assistance
+    - ``community_benefit_pct_of_expenses`` — Schedule H total community benefit as a
+      percentage (0-100) of Schedule H total expenses. Same-form denominator, so this
+      is the standard internally-consistent "community benefit as a share of expenses"
+      measure and it is the one to quote.
+    - ``community_benefit_pct_of_hcris_expenses`` — the same numerator over HCRIS total
+      operating expenses (0-100). Cross-form, so it inherits every scope difference
+      between the two filings; useful only as a sanity check on the 7k ratio, and
+      meaningless where the two forms cover different periods or different-scale
+      entities. Both are NaN rather than ``inf`` when the denominator is 0 or missing.
+    """
+    cw_cols = ["ccn", "ein"]
+    for opt in (
+        "adi_natrank",
+        "adi_state_decile",
+        "svi_overall_pct",
+        "svi_socio_pct",
+        "svi_household_pct",
+        "svi_minority_pct",
+        "svi_housing_pct",
+    ):
+        if opt in crosswalk.columns:
+            cw_cols.append(opt)
+    cw = crosswalk[cw_cols].dropna(subset=["ccn", "ein"])
+
+    aggs: dict[str, tuple[str, str]] = {
+        "ccn_count": ("ccn", "nunique"),
+        "hospital_name": ("hospital_name", "first"),
+        "hcris_charity_care_cost": ("charity_care_cost", "sum"),
+        "hcris_uncompensated_care_cost": ("uncompensated_care_cost", "sum"),
+        "hcris_total_operating_expenses": ("total_operating_expenses", "sum"),
+    }
+    if "fy_end_dt" in hcris_wide.columns:
+        aggs["hcris_fy_end_dt"] = ("fy_end_dt", "max")
+    # Optional SDOH enrichments — present when the caller has joined county-
+    # level deprivation/vulnerability columns onto the crosswalk before passing
+    # it in. ADI is local-only (UW non-sublicensable terms); SVI is public
+    # (CDC, US gov work).
+    for sdoh_col in (
+        "adi_natrank",
+        "adi_state_decile",
+        "svi_overall_pct",
+        "svi_socio_pct",
+        "svi_household_pct",
+        "svi_minority_pct",
+        "svi_housing_pct",
+    ):
+        if sdoh_col in crosswalk.columns:
+            aggs[sdoh_col] = (sdoh_col, "median")
+
+    by_system = (
+        hcris_wide.merge(cw, left_on="prvdr_num", right_on="ccn", how="inner")
+        .groupby("ein", as_index=False)
+        .agg(**aggs)
+    )
+
+    # When a 990 has been amended, the same EIN appears in multiple release-year
+    # ingests with the same tax_period_end. Prefer the newest release_year, then
+    # newest tax_period_end. release_year may be missing if the caller ran
+    # parse_zip directly — fall back to tax_period_end-only ordering.
+    sort_keys = ["tax_period_end"]
+    if "release_year" in schedule_h.columns:
+        sort_keys = ["release_year", "tax_period_end"]
+    sched_latest = (
+        schedule_h.sort_values(sort_keys, ascending=False)
+        .drop_duplicates(subset=["ein"], keep="first")[
+            [
+                "ein",
+                "organization_name",
+                "tax_period_end",
+                "financial_assistance_at_cost",
+                "total_community_benefit",
+                "total_expenses",
+            ]
+        ]
+        .rename(
+            columns={
+                "organization_name": "sched_h_organization_name",
+                "tax_period_end": "sched_h_tax_period_end",
+                "financial_assistance_at_cost": "sched_h_financial_assistance_at_cost",
+                "total_community_benefit": "sched_h_total_community_benefit",
+                "total_expenses": "sched_h_total_expenses",
+            }
+        )
+    )
+
+    joined = by_system.merge(sched_latest, on="ein", how="inner")
+    joined["charity_gap"] = (
+        joined["hcris_charity_care_cost"] - joined["sched_h_financial_assistance_at_cost"]
+    )
+    # Percent, not a fraction, to match the column name and the SVI ``_pct`` columns.
+    # Zero denominators become NaN so the ratio is missing rather than ``inf``.
+    sched_denom = joined["sched_h_total_expenses"]
+    hcris_denom = joined["hcris_total_operating_expenses"]
+    joined["community_benefit_pct_of_expenses"] = (
+        joined["sched_h_total_community_benefit"] / sched_denom.where(sched_denom != 0) * 100
+    )
+    joined["community_benefit_pct_of_hcris_expenses"] = (
+        joined["sched_h_total_community_benefit"] / hcris_denom.where(hcris_denom != 0) * 100
+    )
+
+    return joined.sort_values("charity_gap", ascending=False, key=lambda s: s.abs())

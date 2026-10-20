@@ -1,0 +1,816 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Charity Care Gap Index — what hospitals told the IRS vs. CMS | trove</title>
+  <meta name="description" content="Every nonprofit U.S. hospital reports its charity care to two federal regulators — CMS (Worksheet S-10) and the IRS (Form 990 Schedule H). For 99 large hospitals where the comparison is clean, the two numbers often differ by more than 50%. Look up any of 1,295 systems.">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Charity Care Gap Index — what hospitals told the IRS vs. what they told Medicare">
+  <meta property="og:description" content="Nonprofit hospitals report charity care to CMS and to the IRS. The numbers should describe the same thing. Yale New Haven told the IRS $113.1M and CMS $35.6M for the same year. Look up any of 1,295 systems.">
+  <meta property="og:url" content="https://troveproject.com/hospitals/">
+  <meta property="og:image" content="https://troveproject.com/og-20260725.jpg">
+  <meta property="og:image:secure_url" content="https://troveproject.com/og-20260725.jpg">
+  <meta property="og:image:type" content="image/jpeg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="trove — the Charity Care Gap Index.">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Charity Care Gap Index — what hospitals told the IRS vs. what they told Medicare">
+  <meta name="twitter:description" content="Nonprofit hospitals report charity care to CMS and to the IRS. Yale New Haven told the IRS $113.1M and CMS $35.6M for the same year. Look up any of 1,295 systems.">
+  <meta name="twitter:image" content="https://troveproject.com/og-20260725.jpg">
+  <meta name="twitter:image:alt" content="trove — the Charity Care Gap Index.">
+  <link rel="canonical" href="https://troveproject.com/hospitals/">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Dataset",
+    "name": "Charity Care Gap Index — CMS Worksheet S-10 vs. IRS 990 Schedule H (TY2022) — trove",
+    "description": "Per-hospital comparison of charity-care cost as reported to CMS (Medicare Cost Report Worksheet S-10) and to the IRS (Form 990 Schedule H Part I line 7a) for 1,295 nonprofit U.S. hospital systems, tax year 2022, with a credibility-hardened ranked index of the 99 single-facility, period-aligned, same-scale hospitals where the comparison is apples-to-apples.",
+    "url": "https://troveproject.com/hospitals/",
+    "sameAs": "https://github.com/cbetz/trove",
+    "license": "https://opensource.org/licenses/MIT",
+    "isAccessibleForFree": true,
+    "keywords": ["HCRIS", "Medicare Cost Reports", "IRS 990", "Schedule H", "charity care", "community benefit", "nonprofit hospitals", "Worksheet S-10", "CMS", "public health data"],
+    "creator": {
+      "@type": "Person",
+      "name": "Chris Betz",
+      "url": "https://cbetz.com",
+      "sameAs": ["https://cbetz.com", "https://x.com/thechrisbetz", "https://github.com/cbetz"]
+    },
+    "publisher": {"@type": "Organization", "name": "trove", "url": "https://troveproject.com/"},
+    "temporalCoverage": "2022/2023",
+    "spatialCoverage": "United States",
+    "distribution": [
+      {"@type": "DataDownload", "encodingFormat": "text/csv", "contentUrl": "https://troveproject.com/data/community_benefit_gap_2022.csv"},
+      {"@type": "DataDownload", "encodingFormat": "application/x-parquet", "contentUrl": "https://troveproject.com/data/community_benefit_gap_2022.parquet"},
+      {"@type": "DataDownload", "encodingFormat": "application/json", "contentUrl": "https://troveproject.com/data/charity_care_gap_index_2022.json"},
+      {"@type": "DataDownload", "encodingFormat": "application/x-parquet", "contentUrl": "https://troveproject.com/data/hcris_2023_wide.parquet"},
+      {"@type": "DataDownload", "encodingFormat": "application/x-parquet", "contentUrl": "https://troveproject.com/data/schedule_h_2022.parquet"}
+    ],
+    "citation": "RTI Press DOI 10.3768/rtipress.2023.op.0080.2302 (CCN↔EIN crosswalk via Community Benefit Insight)"
+  }
+  </script>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #ffffff;
+      --fg: #111111;
+      --muted: #5a5a5a;
+      --border: rgba(127, 127, 127, 0.3);
+      --row-hover: rgba(127, 127, 127, 0.08);
+      --row-active: rgba(127, 127, 127, 0.18);
+      --pos: #a04413;
+      --neg: #1f5793;
+      --warn-bg: rgba(184, 85, 26, 0.06);
+      --accent: rgba(127,127,127,0.12);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg: #111111; --fg: #f2f2f2; --muted: #adadad; --pos: #f0a26b; --neg: #82b6e6; --warn-bg: rgba(238, 148, 87, 0.08); --accent: rgba(255,255,255,0.06); }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0 auto;
+      padding: 4rem 1.5rem 6rem;
+      max-width: 64rem;
+      font: 15px/1.6 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      background: var(--bg);
+      color: var(--fg);
+    }
+    .narrow { max-width: 44rem; }
+    h1 { font-size: 2.5rem; margin: 0 0 0.5rem; letter-spacing: -0.03em; font-weight: 700; line-height: 1.1; }
+    .tagline { color: var(--muted); margin: 0 0 2rem; font-size: 1.1rem; }
+    .breadcrumb { color: var(--muted); margin: 0 0 1rem; font-size: 0.9em; }
+    .breadcrumb a { text-decoration: none; }
+    .breadcrumb a:hover { text-decoration: underline; }
+    h2 { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); margin: 0 0 0.85rem; font-weight: 600; }
+    section { margin-top: 3rem; }
+    a { color: inherit; }
+    a:hover { opacity: 0.7; }
+    code { background: var(--border); padding: 0.05em 0.35em; border-radius: 3px; font-size: 0.9em; }
+    pre { background: var(--border); padding: 1rem 1.25rem; border-radius: 6px; overflow-x: auto; font-size: 0.85em; line-height: 1.5; }
+    pre code { background: none; padding: 0; }
+
+    .lede p { margin: 0.85em 0; }
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; margin: 2rem 0 0; }
+    .stat { border: 1px solid var(--border); border-radius: 6px; padding: 1rem 1.1rem; }
+    .stat-num { font-size: 1.55rem; font-weight: 700; letter-spacing: -0.02em; }
+    .stat-label { color: var(--muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 0.25rem; }
+    .stat-sub { color: var(--muted); font-size: 0.85em; margin-top: 0.4rem; line-height: 1.45; }
+    @media (max-width: 640px) { .stats { grid-template-columns: 1fr; } h1 { font-size: 2rem; } }
+
+    /* leaderboard */
+    .board-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; }
+    table.board { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; min-width: 34rem; }
+    table.board th { text-align: right; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 600; padding: 0.65rem 0.75rem; border-bottom: 1px solid var(--border); white-space: nowrap; background: var(--accent); }
+    table.board th.l, table.board td.l { text-align: left; }
+    table.board td { padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    table.board tr:last-child td { border-bottom: 0; }
+    table.board tbody tr { cursor: pointer; }
+    table.board tbody tr:hover td { background: var(--row-hover); }
+    .b-rank { color: var(--muted); width: 2rem; }
+    .b-name { font-weight: 600; white-space: normal; }
+    .b-pct { color: var(--muted); }
+    .board-note { color: var(--muted); font-size: 0.85em; margin: 0.9rem 0 0; }
+    .board-more { margin-top: 0.9rem; }
+    .linkish { background: none; border: 0; color: inherit; font: inherit; cursor: pointer; text-decoration: underline; padding: 0; }
+    .linkish:hover { opacity: 0.7; }
+
+    .search-box { position: relative; }
+    .search { display: flex; align-items: center; gap: 0.5rem; border: 1px solid var(--border); border-radius: 6px; padding: 0.7rem 0.95rem; }
+    .search::before { content: "›"; color: var(--muted); font-weight: 700; }
+    .search input { flex: 1; border: 0; background: transparent; font: inherit; color: inherit; outline: none; padding: 0; }
+    .matches { margin-top: 0.6rem; border: 1px solid var(--border); border-radius: 6px; max-height: 24rem; overflow-y: auto; background: var(--bg); }
+    .match { display: block; width: 100%; text-align: left; padding: 0.7rem 0.95rem; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; border-bottom: 1px solid var(--border); }
+    .match:last-child { border-bottom: 0; }
+    .match:hover, .match:focus { background: var(--row-hover); outline: none; }
+    .match-name { font-weight: 600; }
+    .match-sub { color: var(--muted); font-size: 0.85em; margin-top: 0.15rem; }
+    .match-empty { padding: 1rem; color: var(--muted); text-align: center; font-style: italic; }
+    .empty-hint { color: var(--muted); margin: 1rem 0 0; font-size: 0.95em; }
+    .pos { color: var(--pos); }
+    .neg { color: var(--neg); }
+
+    .detail { border: 1px solid var(--border); border-radius: 6px; padding: 1.5rem 1.5rem 1.25rem; margin-top: 1.5rem; scroll-margin-top: 1rem; }
+    .detail-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; }
+    .detail-title { font-size: 1.25rem; font-weight: 700; margin: 0; letter-spacing: -0.01em; }
+    .detail-sub { color: var(--muted); font-size: 0.9em; margin: 0.15rem 0 0; }
+    .detail-actions { display: flex; gap: 0.75rem; font-size: 0.85em; white-space: nowrap; }
+    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.25rem; }
+    .detail-grid h3 { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin: 0 0 0.6rem; font-weight: 600; }
+    .detail-row { display: flex; justify-content: space-between; padding: 0.25rem 0; border-bottom: 1px dotted var(--border); font-variant-numeric: tabular-nums; }
+    .detail-row:last-child { border-bottom: 0; }
+    .detail-row span:first-child { color: var(--muted); }
+    .detail-gap { margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: baseline; font-size: 1.1rem; font-weight: 700; }
+    .detail-signals { margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border); display: grid; grid-template-columns: 1fr; gap: 0.5rem; font-size: 0.9em; }
+    .signal { display: flex; gap: 0.6rem; align-items: baseline; }
+    .signal-label { color: var(--muted); white-space: nowrap; min-width: 12rem; }
+    .detail-links { margin-top: 1rem; font-size: 0.9em; }
+    .detail-links a { margin-right: 1rem; }
+    @media (max-width: 640px) { .detail-grid { grid-template-columns: 1fr; } .signal-label { min-width: auto; } }
+
+    details { border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem 1.1rem; }
+    details summary { cursor: pointer; font-weight: 600; }
+    details[open] summary { margin-bottom: 0.85rem; }
+    details p, details ul { margin: 0.5rem 0; }
+    details ul { padding-left: 1.25rem; }
+
+    footer { margin-top: 4rem; padding-top: 1.5rem; border-top: 1px solid var(--border); color: var(--muted); font-size: 0.85em; }
+    footer .row { display: flex; flex-wrap: wrap; gap: 0.85rem 1.5rem; justify-content: space-between; }
+    footer p { margin: 0 0 0.5rem; }
+    .toast { position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 0.6rem 1.1rem; border-radius: 6px; font-size: 0.85em; opacity: 0; transition: opacity 0.2s; pointer-events: none; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+  <header class="narrow">
+    <p class="breadcrumb"><a href="/">trove</a> / hospital reporting</p>
+    <h1>What hospitals told the IRS vs.&nbsp;what they told Medicare</h1>
+    <p class="tagline">Every nonprofit U.S. hospital reports its charity care to two federal regulators. The numbers are supposed to describe the same thing. Often they're far apart.</p>
+  </header>
+
+  <section class="narrow lede">
+    <p>Nonprofit hospitals report the cost of the free and discounted care they give patients who can't pay <strong>twice</strong>: to CMS on Worksheet S-10 of the Medicare Cost Report, and to the IRS on Schedule H (Part I, line 7a) of Form 990. Same underlying activity, two federal filings — and for many hospitals the two numbers are strikingly different for the same year.</p>
+    <p><strong>Yale New Haven Hospital</strong>, for its fiscal year ending September 2023, told the IRS it provided <strong>$113.1M</strong> in financial assistance and told CMS <strong>$35.6M</strong> in charity care — a $77.5M gap, on a comparable ~$4.1&nbsp;billion expense base (the two filings' total expenses agree within 5%). It is not alone.</p>
+    <p class="board-note"><strong>A gap is not an accusation.</strong> The two forms have genuinely different definitions, cost-to-charge handling, and category boundaries, and a difference can be entirely legitimate. This is a long-known measurement inconsistency — what's new here is that you can now check it per hospital, with a link to both source filings.</p>
+    <p>New: <a href="/notes/charity-care-gap/"><strong>the full write-up</strong></a> — why the two numbers diverge, what the filters do, and what a gap does and doesn't mean.</p>
+    <div class="stats" id="stats">
+      <div class="stat">
+        <div class="stat-num" id="stat-clean">—</div>
+        <div class="stat-label">Cleanly comparable hospitals</div>
+        <div class="stat-sub">Single-facility, period-aligned, both figures ≥ $1M, and the two forms report the same-scale entity (expense bases within 5%).</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num" id="stat-big">—</div>
+        <div class="stat-label">Differ by more than 50%</div>
+        <div class="stat-sub">Among the cleanly comparable hospitals, the share whose two federal charity-care numbers are more than 50% apart.</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num" id="stat-searchable">—</div>
+        <div class="stat-label">Systems searchable</div>
+        <div class="stat-sub">Every computable EIN-level match across HCRIS, IRS 990 Schedule H, and the CBI crosswalk for tax year 2022 — look up any of them below.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="narrow">
+    <h2>The Charity Care Gap Index — TY2022</h2>
+    <p class="board-note" style="margin-bottom: 1rem;">The hospitals where the CMS and IRS charity-care figures are cleanly comparable, ranked by the size of the difference. Click any row for the full side-by-side and links to both filings. Every row is a shareable link.</p>
+
+<!-- GAP_CHART:START -->
+
+<style>
+  .gapfig { margin: 2rem 0; }
+  .gapfig figcaption { color: var(--muted); font-size: 0.85rem; line-height: 1.5; margin-top: 0.6rem; }
+  .gapchart { width: 100%; height: auto; display: block; overflow: visible;
+    --mark-pos: #a04413; --mark-neg: #1f5793;
+    --grid: rgba(127,127,127,0.22); --parity: rgba(127,127,127,0.55); }
+  @media (prefers-color-scheme: dark) {
+    .gapchart { --mark-pos: #d95926; --mark-neg: #3987e5;
+      --grid: rgba(255,255,255,0.13); --parity: rgba(255,255,255,0.4); }
+  }
+  .gapchart .grid { stroke: var(--grid); stroke-width: 1; }
+  .gapchart .parity { stroke: var(--parity); stroke-width: 1.5; }
+  .gapchart .tick, .gapchart .axis-title, .gapchart .region {
+    fill: var(--muted); font-family: ui-monospace, Menlo, monospace; }
+  .gapchart .tick { font-size: 12px; }
+  .gapchart .tick-x { text-anchor: middle; }
+  .gapchart .tick-y { text-anchor: end; }
+  .gapchart .axis-title { font-size: 12.5px; text-anchor: middle; }
+  .gapchart .region { font-size: 12px; text-anchor: start; }
+  .gapchart .swatch { stroke: var(--bg); stroke-width: 1.5; }
+  .gapchart .swatch.pos { fill: var(--mark-pos); }
+  .gapchart .swatch.neg { fill: var(--mark-neg); }
+  .gapchart .dot { stroke: var(--bg); stroke-width: 2; cursor: pointer; }
+  .gapchart .dot.pos { fill: var(--mark-pos); }
+  .gapchart .dot.neg { fill: var(--mark-neg); }
+  .gapchart .dot:hover { r: 7; }
+  .gaptip { position: fixed; z-index: 20; pointer-events: none; opacity: 0;
+    transition: opacity 0.1s; background: var(--bg); color: var(--fg);
+    border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem 0.7rem;
+    font: 12px/1.5 ui-monospace, Menlo, monospace; max-width: 17rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.18); }
+  .gaptip b { display: block; margin-bottom: 0.2rem; }
+  .gaptip span { color: var(--muted); }
+</style>
+
+<figure class="gapfig">
+<svg class="gapchart" viewBox="0 0 720 560" role="img" aria-labelledby="gapchart-t gapchart-d" preserveAspectRatio="xMidYMid meet">
+<title id="gapchart-t">Charity care reported to CMS versus to the IRS, 99 hospitals, tax year 2022</title>
+<desc id="gapchart-d">Log-log scatter. Each dot is one hospital. The diagonal marks where the two filings would be equal. Dots above it reported more to CMS; dots below reported more to the IRS. Distance from the diagonal is the size of the difference. The full figures are in the table below.</desc>
+<line class="grid" x1="106.0" y1="28" x2="106.0" y2="492"/>
+<line class="grid" x1="82" y1="473.9" x2="698" y2="473.9"/>
+<text class="tick tick-x" x="106.0" y="512">$1M</text>
+<text class="tick tick-y" x="72" y="477.9">$1M</text>
+<line class="grid" x1="188.9" y1="28" x2="188.9" y2="492"/>
+<line class="grid" x1="82" y1="411.5" x2="698" y2="411.5"/>
+<text class="tick tick-x" x="188.9" y="512">$2M</text>
+<text class="tick tick-y" x="72" y="415.5">$2M</text>
+<line class="grid" x1="298.4" y1="28" x2="298.4" y2="492"/>
+<line class="grid" x1="82" y1="329.0" x2="698" y2="329.0"/>
+<text class="tick tick-x" x="298.4" y="512">$5M</text>
+<text class="tick tick-y" x="72" y="333.0">$5M</text>
+<line class="grid" x1="381.3" y1="28" x2="381.3" y2="492"/>
+<line class="grid" x1="82" y1="266.6" x2="698" y2="266.6"/>
+<text class="tick tick-x" x="381.3" y="512">$10M</text>
+<text class="tick tick-y" x="72" y="270.6">$10M</text>
+<line class="grid" x1="464.2" y1="28" x2="464.2" y2="492"/>
+<line class="grid" x1="82" y1="204.1" x2="698" y2="204.1"/>
+<text class="tick tick-x" x="464.2" y="512">$20M</text>
+<text class="tick tick-y" x="72" y="208.1">$20M</text>
+<line class="grid" x1="573.7" y1="28" x2="573.7" y2="492"/>
+<line class="grid" x1="82" y1="121.6" x2="698" y2="121.6"/>
+<text class="tick tick-x" x="573.7" y="512">$50M</text>
+<text class="tick tick-y" x="72" y="125.6">$50M</text>
+<line class="grid" x1="656.6" y1="28" x2="656.6" y2="492"/>
+<line class="grid" x1="82" y1="59.2" x2="698" y2="59.2"/>
+<text class="tick tick-x" x="656.6" y="512">$100M</text>
+<text class="tick tick-y" x="72" y="63.2">$100M</text>
+<line class="parity" x1="82.0" y1="492.0" x2="698.0" y2="28.0"/>
+<line class="parity" x1="96" y1="42" x2="112" y2="42"/><text class="region" x="120" y="46">the diagonal: both filings equal</text>
+<circle class="swatch pos" cx="104" cy="62" r="4.5"/><text class="region" x="120" y="66">above it: reported more to CMS</text>
+<circle class="swatch neg" cx="104" cy="82" r="4.5"/><text class="region" x="120" y="86">below it: reported more to the IRS</text>
+<circle class="dot neg" cx="671.3" cy="152.3" r="4.5" data-n="Yale New Haven Hospital" data-irs="$113.1M" data-cms="$35.6M" data-pct="69%" data-end="2023-09-30"><title>Yale New Haven Hospital: IRS $113.1M, CMS $35.6M</title></circle>
+<circle class="dot pos" cx="576.2" cy="57.1" r="4.5" data-n="Tampa General Hospital" data-irs="$51.0M" data-cms="$102.4M" data-pct="50%" data-end="2023-09-30"><title>Tampa General Hospital: IRS $51.0M, CMS $102.4M</title></circle>
+<circle class="dot neg" cx="483.8" cy="349.4" r="4.5" data-n="Greenwich Hospital" data-irs="$23.6M" data-cms="$4.0M" data-pct="83%" data-end="2023-09-30"><title>Greenwich Hospital: IRS $23.6M, CMS $4.0M</title></circle>
+<circle class="dot pos" cx="530.3" cy="117.1" r="4.5" data-n="Baptist Medical Center" data-irs="$34.8M" data-cms="$52.6M" data-pct="34%" data-end="2023-09-30"><title>Baptist Medical Center: IRS $34.8M, CMS $52.6M</title></circle>
+<circle class="dot pos" cx="121.0" cy="213.4" r="4.5" data-n="Western Regional Medical Center" data-irs="$1.1M" data-cms="$18.1M" data-pct="94%" data-end="2023-09-30"><title>Western Regional Medical Center: IRS $1.1M, CMS $18.1M</title></circle>
+<circle class="dot neg" cx="470.5" cy="333.0" r="4.5" data-n="Lawrence &amp; Memorial Hospital" data-irs="$21.1M" data-cms="$4.8M" data-pct="77%" data-end="2023-09-30"><title>Lawrence &amp; Memorial Hospital: IRS $21.1M, CMS $4.8M</title></circle>
+<circle class="dot pos" cx="396.1" cy="177.9" r="4.5" data-n="Cook Childrens Medical Center" data-irs="$11.3M" data-cms="$26.8M" data-pct="58%" data-end="2023-09-30"><title>Cook Childrens Medical Center: IRS $11.3M, CMS $26.8M</title></circle>
+<circle class="dot pos" cx="281.8" cy="215.9" r="4.5" data-n="Bayfront Health St. Petersburg" data-irs="$4.4M" data-cms="$17.6M" data-pct="75%" data-end="2023-09-30"><title>Bayfront Health St. Petersburg: IRS $4.4M, CMS $17.6M</title></circle>
+<circle class="dot neg" cx="523.0" cy="206.2" r="4.5" data-n="Bridgeport Hospital" data-irs="$32.7M" data-cms="$19.5M" data-pct="40%" data-end="2023-09-30"><title>Bridgeport Hospital: IRS $32.7M, CMS $19.5M</title></circle>
+<circle class="dot pos" cx="655.9" cy="49.4" r="4.5" data-n="Boston Medical Center" data-irs="$99.5M" data-cms="$111.5M" data-pct="11%" data-end="2023-09-30"><title>Boston Medical Center: IRS $99.5M, CMS $111.5M</title></circle>
+<circle class="dot neg" cx="485.2" cy="247.3" r="4.5" data-n="Beth Israel Deaconess Medical Center" data-irs="$23.8M" data-cms="$12.4M" data-pct="48%" data-end="2023-09-30"><title>Beth Israel Deaconess Medical Center: IRS $23.8M, CMS $12.4M</title></circle>
+<circle class="dot pos" cx="331.9" cy="216.2" r="4.5" data-n="Southeastern Regional Medical Center" data-irs="$6.6M" data-cms="$17.5M" data-pct="62%" data-end="2023-09-30"><title>Southeastern Regional Medical Center: IRS $6.6M, CMS $17.5M</title></circle>
+<circle class="dot pos" cx="331.9" cy="219.4" r="4.5" data-n="Sharp Memorial Hospital" data-irs="$6.6M" data-cms="$16.9M" data-pct="61%" data-end="2023-09-30"><title>Sharp Memorial Hospital: IRS $6.6M, CMS $16.9M</title></circle>
+<circle class="dot neg" cx="425.1" cy="341.9" r="4.5" data-n="Boca Raton Regional Hospital" data-irs="$14.4M" data-cms="$4.3M" data-pct="70%" data-end="2023-09-30"><title>Boca Raton Regional Hospital: IRS $14.4M, CMS $4.3M</title></circle>
+<circle class="dot pos" cx="320.3" cy="228.4" r="4.5" data-n="Grossmont Hospital" data-irs="$6.0M" data-cms="$15.3M" data-pct="61%" data-end="2023-09-30"><title>Grossmont Hospital: IRS $6.0M, CMS $15.3M</title></circle>
+<circle class="dot neg" cx="444.1" cy="289.2" r="4.5" data-n="Hamilton Medical Center" data-irs="$16.9M" data-cms="$7.8M" data-pct="54%" data-end="2023-09-30"><title>Hamilton Medical Center: IRS $16.9M, CMS $7.8M</title></circle>
+<circle class="dot neg" cx="365.6" cy="464.6" r="4.5" data-n="Oroville Hospital" data-irs="$8.8M" data-cms="$1.1M" data-pct="87%" data-end="2023-11-30"><title>Oroville Hospital: IRS $8.8M, CMS $1.1M</title></circle>
+<circle class="dot neg" cx="435.2" cy="280.9" r="4.5" data-n="Carilion Medical Center" data-irs="$15.7M" data-cms="$8.5M" data-pct="46%" data-end="2023-09-30"><title>Carilion Medical Center: IRS $15.7M, CMS $8.5M</title></circle>
+<circle class="dot pos" cx="301.9" cy="257.5" r="4.5" data-n="Sharp Chula Vista Medical Center" data-irs="$5.1M" data-cms="$11.1M" data-pct="53%" data-end="2023-09-30"><title>Sharp Chula Vista Medical Center: IRS $5.1M, CMS $11.1M</title></circle>
+<circle class="dot pos" cx="380.8" cy="225.4" r="4.5" data-n="St Bernards Medical Center" data-irs="$10.0M" data-cms="$15.8M" data-pct="37%" data-end="2023-09-30"><title>St Bernards Medical Center: IRS $10.0M, CMS $15.8M</title></circle>
+<circle class="dot neg" cx="522.1" cy="177.1" r="4.5" data-n="North Mississippi Medical Center" data-irs="$32.5M" data-cms="$27.0M" data-pct="17%" data-end="2023-09-30"><title>North Mississippi Medical Center: IRS $32.5M, CMS $27.0M</title></circle>
+<circle class="dot pos" cx="187.7" cy="295.5" r="4.5" data-n="Concord Hospital  Inc." data-irs="$2.0M" data-cms="$7.3M" data-pct="73%" data-end="2023-09-30"><title>Concord Hospital  Inc.: IRS $2.0M, CMS $7.3M</title></circle>
+<circle class="dot neg" cx="493.0" cy="200.1" r="4.5" data-n="Coxhealth" data-irs="$25.5M" data-cms="$20.9M" data-pct="18%" data-end="2023-09-30"><title>Coxhealth: IRS $25.5M, CMS $20.9M</title></circle>
+<circle class="dot pos" cx="421.3" cy="211.4" r="4.5" data-n="Baptist Mem Hospital Desoto" data-irs="$14.0M" data-cms="$18.4M" data-pct="24%" data-end="2023-09-30"><title>Baptist Mem Hospital Desoto: IRS $14.0M, CMS $18.4M</title></circle>
+<circle class="dot pos" cx="411.6" cy="218.0" r="4.5" data-n="Orlando Health South Lake Hospital" data-irs="$12.9M" data-cms="$17.1M" data-pct="25%" data-end="2023-09-30"><title>Orlando Health South Lake Hospital: IRS $12.9M, CMS $17.1M</title></circle>
+<circle class="dot pos" cx="422.4" cy="212.0" r="4.5" data-n="Deaconess Hospital" data-irs="$14.1M" data-cms="$18.3M" data-pct="23%" data-end="2023-09-30"><title>Deaconess Hospital: IRS $14.1M, CMS $18.3M</title></circle>
+<circle class="dot neg" cx="344.4" cy="352.3" r="4.5" data-n="Baystate Medical Center" data-irs="$7.3M" data-cms="$3.9M" data-pct="47%" data-end="2023-09-30"><title>Baystate Medical Center: IRS $7.3M, CMS $3.9M</title></circle>
+<circle class="dot neg" cx="311.5" cy="404.7" r="4.5" data-n="Mount Auburn Hospital" data-irs="$5.6M" data-cms="$2.2M" data-pct="61%" data-end="2023-09-30"><title>Mount Auburn Hospital: IRS $5.6M, CMS $2.2M</title></circle>
+<circle class="dot neg" cx="328.2" cy="371.0" r="4.5" data-n="Jupiter Medical Center" data-irs="$6.4M" data-cms="$3.1M" data-pct="51%" data-end="2023-09-30"><title>Jupiter Medical Center: IRS $6.4M, CMS $3.1M</title></circle>
+<circle class="dot neg" cx="403.5" cy="275.5" r="4.5" data-n="University Of Vermont Medical Center" data-irs="$12.0M" data-cms="$9.1M" data-pct="25%" data-end="2023-09-30"><title>University Of Vermont Medical Center: IRS $12.0M, CMS $9.1M</title></circle>
+<circle class="dot pos" cx="216.0" cy="321.3" r="4.5" data-n="Baptist Medical Center-Beaches" data-irs="$2.5M" data-cms="$5.4M" data-pct="54%" data-end="2023-09-30"><title>Baptist Medical Center-Beaches: IRS $2.5M, CMS $5.4M</title></circle>
+<circle class="dot pos" cx="215.8" cy="326.1" r="4.5" data-n="Silver Cross Hospital" data-irs="$2.5M" data-cms="$5.2M" data-pct="51%" data-end="2023-09-30"><title>Silver Cross Hospital: IRS $2.5M, CMS $5.2M</title></circle>
+<circle class="dot neg" cx="394.7" cy="277.3" r="4.5" data-n="Conway Hospital" data-irs="$11.2M" data-cms="$8.9M" data-pct="21%" data-end="2023-09-30"><title>Conway Hospital: IRS $11.2M, CMS $8.9M</title></circle>
+<circle class="dot pos" cx="341.6" cy="272.8" r="4.5" data-n="Lahey Clinic Hospital  Inc." data-irs="$7.2M" data-cms="$9.3M" data-pct="23%" data-end="2023-09-30"><title>Lahey Clinic Hospital  Inc.: IRS $7.2M, CMS $9.3M</title></circle>
+<circle class="dot pos" cx="268.4" cy="313.5" r="4.5" data-n="Saint Francis Hospital" data-irs="$3.9M" data-cms="$5.9M" data-pct="34%" data-end="2023-09-30"><title>Saint Francis Hospital: IRS $3.9M, CMS $5.9M</title></circle>
+<circle class="dot neg" cx="364.5" cy="302.5" r="4.5" data-n="The Miriam Hospital" data-irs="$8.7M" data-cms="$6.7M" data-pct="23%" data-end="2023-09-30"><title>The Miriam Hospital: IRS $8.7M, CMS $6.7M</title></circle>
+<circle class="dot pos" cx="143.3" cy="366.2" r="4.5" data-n="Baptist Medical Ctr-Nassau" data-irs="$1.4M" data-cms="$3.3M" data-pct="59%" data-end="2023-09-30"><title>Baptist Medical Ctr-Nassau: IRS $1.4M, CMS $3.3M</title></circle>
+<circle class="dot pos" cx="182.7" cy="353.1" r="4.5" data-n="Midwestern Regional Medical Center" data-irs="$1.9M" data-cms="$3.8M" data-pct="50%" data-end="2023-09-30"><title>Midwestern Regional Medical Center: IRS $1.9M, CMS $3.8M</title></circle>
+<circle class="dot pos" cx="160.7" cy="362.2" r="4.5" data-n="Deaconess Henderson Hospital" data-irs="$1.6M" data-cms="$3.5M" data-pct="54%" data-end="2023-09-30"><title>Deaconess Henderson Hospital: IRS $1.6M, CMS $3.5M</title></circle>
+<circle class="dot neg" cx="548.9" cy="144.3" r="4.5" data-n="Baptist Mem Hospital Memphis" data-irs="$40.6M" data-cms="$38.9M" data-pct="4%" data-end="2023-09-30"><title>Baptist Mem Hospital Memphis: IRS $40.6M, CMS $38.9M</title></circle>
+<circle class="dot pos" cx="328.9" cy="284.6" r="4.5" data-n="Southcoast Hospitals Group  Inc" data-irs="$6.5M" data-cms="$8.2M" data-pct="21%" data-end="2023-09-30"><title>Southcoast Hospitals Group  Inc: IRS $6.5M, CMS $8.2M</title></circle>
+<circle class="dot neg" cx="339.5" cy="323.0" r="4.5" data-n="Baptist Mem Hospital Union County" data-irs="$7.1M" data-cms="$5.3M" data-pct="24%" data-end="2023-09-30"><title>Baptist Mem Hospital Union County: IRS $7.1M, CMS $5.3M</title></circle>
+<circle class="dot pos" cx="307.1" cy="297.6" r="4.5" data-n="Blessing Hospital" data-irs="$5.4M" data-cms="$7.1M" data-pct="24%" data-end="2023-09-30"><title>Blessing Hospital: IRS $5.4M, CMS $7.1M</title></circle>
+<circle class="dot neg" cx="329.3" cy="332.5" r="4.5" data-n="Nea Baptist Memorial Hospital" data-irs="$6.5M" data-cms="$4.8M" data-pct="26%" data-end="2023-09-30"><title>Nea Baptist Memorial Hospital: IRS $6.5M, CMS $4.8M</title></circle>
+<circle class="dot pos" cx="223.0" cy="343.5" r="4.5" data-n="Mclaren Macomb" data-irs="$2.7M" data-cms="$4.3M" data-pct="37%" data-end="2023-09-30"><title>Mclaren Macomb: IRS $2.7M, CMS $4.3M</title></circle>
+<circle class="dot pos" cx="461.1" cy="200.1" r="4.5" data-n="Shannon Medical Center" data-irs="$19.5M" data-cms="$20.9M" data-pct="7%" data-end="2023-09-30"><title>Shannon Medical Center: IRS $19.5M, CMS $20.9M</title></circle>
+<circle class="dot pos" cx="199.4" cy="358.7" r="4.5" data-n="Women &amp; Infants Hospital" data-irs="$2.2M" data-cms="$3.6M" data-pct="39%" data-end="2023-09-30"><title>Women &amp; Infants Hospital: IRS $2.2M, CMS $3.6M</title></circle>
+<circle class="dot neg" cx="503.1" cy="179.1" r="4.5" data-n="Naples Community Hospital" data-irs="$27.7M" data-cms="$26.4M" data-pct="5%" data-end="2023-09-30"><title>Naples Community Hospital: IRS $27.7M, CMS $26.4M</title></circle>
+<circle class="dot pos" cx="136.3" cy="392.4" r="4.5" data-n="Ottawa Regional Hospital &amp; Healthcar" data-irs="$1.3M" data-cms="$2.5M" data-pct="48%" data-end="2023-09-30"><title>Ottawa Regional Hospital &amp; Healthcar: IRS $1.3M, CMS $2.5M</title></circle>
+<circle class="dot neg" cx="221.4" cy="439.9" r="4.5" data-n="Beverly Hospital" data-irs="$2.6M" data-cms="$1.5M" data-pct="44%" data-end="2023-09-30"><title>Beverly Hospital: IRS $2.6M, CMS $1.5M</title></circle>
+<circle class="dot neg" cx="239.8" cy="412.6" r="4.5" data-n="Lowell General Hospital" data-irs="$3.1M" data-cms="$2.0M" data-pct="36%" data-end="2023-09-30"><title>Lowell General Hospital: IRS $3.1M, CMS $2.0M</title></circle>
+<circle class="dot neg" cx="259.9" cy="388.9" r="4.5" data-n="Emerson Hospital" data-irs="$3.6M" data-cms="$2.6M" data-pct="29%" data-end="2023-09-30"><title>Emerson Hospital: IRS $3.6M, CMS $2.6M</title></circle>
+<circle class="dot neg" cx="320.9" cy="328.9" r="4.5" data-n="Cox Medical Center Branson" data-irs="$6.0M" data-cms="$5.0M" data-pct="17%" data-end="2023-09-30"><title>Cox Medical Center Branson: IRS $6.0M, CMS $5.0M</title></circle>
+<circle class="dot pos" cx="263.8" cy="333.9" r="4.5" data-n="Lawrence General Hospital" data-irs="$3.7M" data-cms="$4.7M" data-pct="21%" data-end="2023-09-30"><title>Lawrence General Hospital: IRS $3.7M, CMS $4.7M</title></circle>
+<circle class="dot pos" cx="374.8" cy="263.6" r="4.5" data-n="Baptist Mem Hospital North Miss" data-irs="$9.5M" data-cms="$10.3M" data-pct="8%" data-end="2023-09-30"><title>Baptist Mem Hospital North Miss: IRS $9.5M, CMS $10.3M</title></circle>
+<circle class="dot neg" cx="402.7" cy="256.8" r="4.5" data-n="St. Vincents Medical Center" data-irs="$12.0M" data-cms="$11.1M" data-pct="7%" data-end="2023-09-30"><title>St. Vincents Medical Center: IRS $12.0M, CMS $11.1M</title></circle>
+<circle class="dot pos" cx="111.6" cy="418.1" r="4.5" data-n="Champlain Valley Physicians Hospital" data-irs="$1.0M" data-cms="$1.9M" data-pct="44%" data-end="2023-09-30"><title>Champlain Valley Physicians Hospital: IRS $1.0M, CMS $1.9M</title></circle>
+<circle class="dot neg" cx="228.9" cy="412.2" r="4.5" data-n="Milford Regional Medical Center  Inc" data-irs="$2.8M" data-cms="$2.0M" data-pct="29%" data-end="2023-09-30"><title>Milford Regional Medical Center  Inc: IRS $2.8M, CMS $2.0M</title></circle>
+<circle class="dot neg" cx="357.5" cy="293.4" r="4.5" data-n="Harnett Health System" data-irs="$8.2M" data-cms="$7.4M" data-pct="9%" data-end="2023-09-30"><title>Harnett Health System: IRS $8.2M, CMS $7.4M</title></circle>
+<circle class="dot pos" cx="108.7" cy="422.0" r="4.5" data-n="Newport Hospital" data-irs="$1.0M" data-cms="$1.8M" data-pct="43%" data-end="2023-09-30"><title>Newport Hospital: IRS $1.0M, CMS $1.8M</title></circle>
+<circle class="dot neg" cx="179.9" cy="459.0" r="4.5" data-n="Valley Regional Hospital" data-irs="$1.9M" data-cms="$1.2M" data-pct="36%" data-end="2023-09-30"><title>Valley Regional Hospital: IRS $1.9M, CMS $1.2M</title></circle>
+<circle class="dot neg" cx="202.5" cy="432.1" r="4.5" data-n="The Griffin Hospital" data-irs="$2.2M" data-cms="$1.6M" data-pct="29%" data-end="2023-09-30"><title>The Griffin Hospital: IRS $2.2M, CMS $1.6M</title></circle>
+<circle class="dot neg" cx="199.1" cy="435.4" r="4.5" data-n="Marshall Hospital" data-irs="$2.2M" data-cms="$1.5M" data-pct="30%" data-end="2023-10-31"><title>Marshall Hospital: IRS $2.2M, CMS $1.5M</title></circle>
+<circle class="dot neg" cx="244.5" cy="389.6" r="4.5" data-n="Winchester Hospital" data-irs="$3.2M" data-cms="$2.6M" data-pct="20%" data-end="2023-09-30"><title>Winchester Hospital: IRS $3.2M, CMS $2.6M</title></circle>
+<circle class="dot pos" cx="466.1" cy="200.0" r="4.5" data-n="Rhode Island Hospital" data-irs="$20.3M" data-cms="$20.9M" data-pct="3%" data-end="2023-09-30"><title>Rhode Island Hospital: IRS $20.3M, CMS $20.9M</title></circle>
+<circle class="dot pos" cx="265.8" cy="342.3" r="4.5" data-n="St. Lukes Nampa Medical Center" data-irs="$3.8M" data-cms="$4.3M" data-pct="12%" data-end="2023-09-30"><title>St. Lukes Nampa Medical Center: IRS $3.8M, CMS $4.3M</title></circle>
+<circle class="dot neg" cx="345.4" cy="299.8" r="4.5" data-n="Vassar Brothers Medical Center" data-irs="$7.4M" data-cms="$6.9M" data-pct="7%" data-end="2023-09-30"><title>Vassar Brothers Medical Center: IRS $7.4M, CMS $6.9M</title></circle>
+<circle class="dot neg" cx="172.3" cy="451.8" r="4.5" data-n="Karmanos Cancer Hospital" data-irs="$1.7M" data-cms="$1.3M" data-pct="27%" data-end="2023-09-30"><title>Karmanos Cancer Hospital: IRS $1.7M, CMS $1.3M</title></circle>
+<circle class="dot neg" cx="217.4" cy="406.4" r="4.5" data-n="Ephraim Mcdowell Reg Med Ctr" data-irs="$2.5M" data-cms="$2.1M" data-pct="17%" data-end="2023-09-30"><title>Ephraim Mcdowell Reg Med Ctr: IRS $2.5M, CMS $2.1M</title></circle>
+<circle class="dot neg" cx="164.6" cy="456.6" r="4.5" data-n="Singing River Gulfport" data-irs="$1.6M" data-cms="$1.2M" data-pct="26%" data-end="2023-09-30"><title>Singing River Gulfport: IRS $1.6M, CMS $1.2M</title></circle>
+<circle class="dot pos" cx="154.1" cy="416.9" r="4.5" data-n="Central Vermont Hospital" data-irs="$1.5M" data-cms="$1.9M" data-pct="21%" data-end="2023-09-30"><title>Central Vermont Hospital: IRS $1.5M, CMS $1.9M</title></circle>
+<circle class="dot neg" cx="238.2" cy="386.2" r="4.5" data-n="Tufts Medical Center" data-irs="$3.0M" data-cms="$2.6M" data-pct="12%" data-end="2023-09-30"><title>Tufts Medical Center: IRS $3.0M, CMS $2.6M</title></circle>
+<circle class="dot pos" cx="316.2" cy="310.1" r="4.5" data-n="Catholic Medical Center" data-irs="$5.8M" data-cms="$6.2M" data-pct="6%" data-end="2023-09-30"><title>Catholic Medical Center: IRS $5.8M, CMS $6.2M</title></circle>
+<circle class="dot neg" cx="240.7" cy="383.5" r="4.5" data-n="Norwegian American Hospital" data-irs="$3.1M" data-cms="$2.7M" data-pct="12%" data-end="2023-09-30"><title>Norwegian American Hospital: IRS $3.1M, CMS $2.7M</title></circle>
+<circle class="dot pos" cx="179.8" cy="403.4" r="4.5" data-n="Pontotoc Health Services" data-irs="$1.9M" data-cms="$2.2M" data-pct="15%" data-end="2023-09-30"><title>Pontotoc Health Services: IRS $1.9M, CMS $2.2M</title></circle>
+<circle class="dot neg" cx="301.6" cy="332.3" r="4.5" data-n="Pih Health Good Samaritan Hospital" data-irs="$5.1M" data-cms="$4.8M" data-pct="6%" data-end="2023-09-30"><title>Pih Health Good Samaritan Hospital: IRS $5.1M, CMS $4.8M</title></circle>
+<circle class="dot pos" cx="409.4" cy="243.2" r="4.5" data-n="Ms Baptist Medical Center" data-irs="$12.6M" data-cms="$13.0M" data-pct="2%" data-end="2023-09-30"><title>Ms Baptist Medical Center: IRS $12.6M, CMS $13.0M</title></circle>
+<circle class="dot neg" cx="309.1" cy="325.9" r="4.5" data-n="Baptist Mem Hospital Tipton County" data-irs="$5.5M" data-cms="$5.2M" data-pct="5%" data-end="2023-09-30"><title>Baptist Mem Hospital Tipton County: IRS $5.5M, CMS $5.2M</title></circle>
+<circle class="dot pos" cx="158.5" cy="419.8" r="4.5" data-n="Middlesex Hospital" data-irs="$1.6M" data-cms="$1.8M" data-pct="15%" data-end="2023-09-30"><title>Middlesex Hospital: IRS $1.6M, CMS $1.8M</title></circle>
+<circle class="dot neg" cx="154.5" cy="454.3" r="4.5" data-n="Baptist Mem Hospital Huntingdon" data-irs="$1.5M" data-cms="$1.2M" data-pct="17%" data-end="2023-09-30"><title>Baptist Mem Hospital Huntingdon: IRS $1.5M, CMS $1.2M</title></circle>
+<circle class="dot neg" cx="171.2" cy="439.0" r="4.5" data-n="Cox-Monett Hospital" data-irs="$1.7M" data-cms="$1.5M" data-pct="15%" data-end="2023-09-30"><title>Cox-Monett Hospital: IRS $1.7M, CMS $1.5M</title></circle>
+<circle class="dot pos" cx="116.3" cy="448.2" r="4.5" data-n="Northern Dutchess Hospital" data-irs="$1.1M" data-cms="$1.3M" data-pct="18%" data-end="2023-09-30"><title>Northern Dutchess Hospital: IRS $1.1M, CMS $1.3M</title></circle>
+<circle class="dot pos" cx="115.4" cy="450.8" r="4.5" data-n="Marion Regional Medical Center" data-irs="$1.1M" data-cms="$1.3M" data-pct="16%" data-end="2023-09-30"><title>Marion Regional Medical Center: IRS $1.1M, CMS $1.3M</title></circle>
+<circle class="dot neg" cx="145.1" cy="458.9" r="4.5" data-n="Putnam Hospital Center" data-irs="$1.4M" data-cms="$1.2M" data-pct="15%" data-end="2023-09-30"><title>Putnam Hospital Center: IRS $1.4M, CMS $1.2M</title></circle>
+<circle class="dot pos" cx="118.9" cy="449.2" r="4.5" data-n="Mclaren Central Michigan" data-irs="$1.1M" data-cms="$1.3M" data-pct="15%" data-end="2023-09-30"><title>Mclaren Central Michigan: IRS $1.1M, CMS $1.3M</title></circle>
+<circle class="dot neg" cx="272.2" cy="353.2" r="4.5" data-n="South Shore Hospital" data-irs="$4.0M" data-cms="$3.8M" data-pct="5%" data-end="2023-09-30"><title>South Shore Hospital: IRS $4.0M, CMS $3.8M</title></circle>
+<circle class="dot neg" cx="192.6" cy="416.9" r="4.5" data-n="Bmh-Crittenden" data-irs="$2.1M" data-cms="$1.9M" data-pct="9%" data-end="2023-09-30"><title>Bmh-Crittenden: IRS $2.1M, CMS $1.9M</title></circle>
+<circle class="dot pos" cx="191.3" cy="402.2" r="4.5" data-n="Monroe Health Services  Inc." data-irs="$2.0M" data-cms="$2.2M" data-pct="8%" data-end="2023-09-30"><title>Monroe Health Services  Inc.: IRS $2.0M, CMS $2.2M</title></circle>
+<circle class="dot neg" cx="165.3" cy="439.3" r="4.5" data-n="Baptist Medical Center - Yazoo" data-irs="$1.6M" data-cms="$1.5M" data-pct="11%" data-end="2023-09-30"><title>Baptist Medical Center - Yazoo: IRS $1.6M, CMS $1.5M</title></circle>
+<circle class="dot neg" cx="275.6" cy="349.9" r="4.5" data-n="Brockton Hospital  Inc." data-irs="$4.1M" data-cms="$4.0M" data-pct="4%" data-end="2023-09-30"><title>Brockton Hospital  Inc.: IRS $4.1M, CMS $4.0M</title></circle>
+<circle class="dot pos" cx="170.8" cy="417.5" r="4.5" data-n="Baptist Mem Hospital Union City" data-irs="$1.7M" data-cms="$1.9M" data-pct="8%" data-end="2023-09-30"><title>Baptist Mem Hospital Union City: IRS $1.7M, CMS $1.9M</title></circle>
+<circle class="dot neg" cx="227.3" cy="387.2" r="4.5" data-n="Rutland Regional Medical Center" data-irs="$2.8M" data-cms="$2.6M" data-pct="5%" data-end="2023-09-30"><title>Rutland Regional Medical Center: IRS $2.8M, CMS $2.6M</title></circle>
+<circle class="dot pos" cx="151.9" cy="435.0" r="4.5" data-n="Clay County Medical Corporation" data-irs="$1.5M" data-cms="$1.5M" data-pct="5%" data-end="2023-09-30"><title>Clay County Medical Corporation: IRS $1.5M, CMS $1.5M</title></circle>
+<circle class="dot neg" cx="184.3" cy="418.2" r="4.5" data-n="St. Lukes Wood River Medical Center" data-irs="$1.9M" data-cms="$1.9M" data-pct="4%" data-end="2023-09-30"><title>St. Lukes Wood River Medical Center: IRS $1.9M, CMS $1.9M</title></circle>
+<circle class="dot pos" cx="394.9" cy="256.3" r="4.5" data-n="Cape Canaveral Hospital Inc" data-irs="$11.2M" data-cms="$11.2M" data-pct="0%" data-end="2023-09-30"><title>Cape Canaveral Hospital Inc: IRS $11.2M, CMS $11.2M</title></circle>
+<circle class="dot pos" cx="303.0" cy="325.5" r="4.5" data-n="Viera Hospital Inc" data-irs="$5.2M" data-cms="$5.2M" data-pct="0%" data-end="2023-09-30"><title>Viera Hospital Inc: IRS $5.2M, CMS $5.2M</title></circle>
+<circle class="dot neg" cx="160.1" cy="433.1" r="4.5" data-n="Gibson Area Hospital And Health Svcs" data-irs="$1.6M" data-cms="$1.6M" data-pct="0%" data-end="2023-09-30"><title>Gibson Area Hospital And Health Svcs: IRS $1.6M, CMS $1.6M</title></circle>
+<circle class="dot neg" cx="124.9" cy="459.7" r="4.5" data-n="Macon County General Hospital" data-irs="$1.2M" data-cms="$1.2M" data-pct="0%" data-end="2023-09-30"><title>Macon County General Hospital: IRS $1.2M, CMS $1.2M</title></circle>
+<circle class="dot neg" cx="223.9" cy="385.1" r="4.5" data-n="Medical Center Of Deltona" data-irs="$2.7M" data-cms="$2.7M" data-pct="0%" data-end="2023-09-30"><title>Medical Center Of Deltona: IRS $2.7M, CMS $2.7M</title></circle>
+<text class="axis-title" x="390" y="542">Reported to the IRS — Form 990 Schedule H, Part I line 7a (net)</text>
+<text class="axis-title" transform="translate(18,260) rotate(-90)" x="0" y="0">Reported to CMS — Worksheet S-10 (net)</text>
+</svg>
+<figcaption>Each dot is one of the 99 hospitals where the two filings are cleanly comparable — single facility, periods ending within a month of each other, both figures at least $1M, and total expenses within 5%. A hospital reporting the same cost to both regulators sits on the diagonal; 22 sit far enough off it that the two figures differ by more than half. Both axes are log-scaled. Hover any dot for the hospital and its two figures. Sources: CMS HCRIS Worksheet S-10 (FY2023) and IRS Form 990 Schedule H (TY2022).</figcaption>
+</figure>
+
+<script>
+(function () {
+  var svg = document.querySelector('.gapchart');
+  if (!svg) return;
+  var tip = document.createElement('div');
+  tip.className = 'gaptip';
+  document.body.appendChild(tip);
+  function show(e) {
+    var d = e.target.dataset;
+    tip.innerHTML = '<b>' + d.n + '</b>'
+      + 'IRS 990 Sch. H 7a: ' + d.irs + '<br>'
+      + 'CMS Worksheet S-10: ' + d.cms + '<br>'
+      + '<span>differs by ' + d.pct + ' \u00b7 period ended ' + d.end + '</span>';
+    tip.style.opacity = '1';
+    move(e);
+  }
+  function move(e) {
+    var r = tip.getBoundingClientRect();
+    var x = Math.min(e.clientX + 14, window.innerWidth - r.width - 8);
+    var y = Math.max(e.clientY - r.height - 12, 8);
+    tip.style.left = x + 'px';
+    tip.style.top = y + 'px';
+  }
+  svg.querySelectorAll('.dot').forEach(function (dot) {
+    dot.addEventListener('mouseenter', show);
+    dot.addEventListener('mousemove', move);
+    dot.addEventListener('mouseleave', function () { tip.style.opacity = '0'; });
+  });
+})();
+</script>
+
+<!-- GAP_CHART:END -->
+
+    <div class="board-scroll">
+      <table class="board" id="board">
+        <thead>
+          <tr>
+            <th class="l">#</th>
+            <th class="l">Hospital</th>
+            <th>Told the IRS</th>
+            <th>Told CMS</th>
+            <th>Difference</th>
+            <th>%</th>
+          </tr>
+        </thead>
+        <tbody id="board-body"><tr><td colspan="6" class="match-empty">Loading…</td></tr></tbody>
+      </table>
+    </div>
+    <div class="board-more">
+      <button class="linkish" id="board-toggle" hidden>Show all <span id="board-total"></span> →</button>
+    </div>
+  </section>
+
+  <section class="narrow">
+    <h2>Look up your hospital</h2>
+    <div class="search-box">
+      <div class="search">
+        <input id="q" type="search" placeholder="Search any of 1,295 systems by name, facility, or EIN…" autocomplete="off" spellcheck="false">
+      </div>
+      <div id="matches" class="matches" hidden></div>
+    </div>
+    <p class="empty-hint" id="empty-hint">Search the full set of 1,295 nonprofit hospital systems — including the many not in the clean index above (multi-facility systems, misaligned filing periods, or smaller filers).</p>
+    <div id="detail-mount"></div>
+  </section>
+
+  <section class="narrow">
+    <h2>Method, field definitions, and HCRIS vs. Schedule H differences</h2>
+    <details>
+      <summary>What "cleanly comparable" means, and why the index is only 99 of 1,295</summary>
+      <p>A raw "biggest gap" ranking over all 1,295 systems is misleading — the largest raw gaps come from multi-hospital systems reported under one EIN (a name like "Memorial Hermann Kingwood" can actually be eight hospitals) and from rows whose two filings cover different fiscal years. The index filters to the subset where a difference is genuinely apples-to-apples:</p>
+      <ul>
+        <li><strong>Single reporting facility</strong> — one CCN under one EIN, so the hospital name is trustworthy and there's no system-level aggregation smoothing or amplifying the difference.</li>
+        <li><strong>Period-aligned</strong> — the HCRIS fiscal-year end is within one month of the 990 tax-period end, so the two filings cover the same year.</li>
+        <li><strong>Material</strong> — both the CMS and IRS figures are at least $1M.</li>
+        <li><strong>Same-scale entity</strong> — the two forms' total expenses agree within 5%, confirming both describe the same organization for the same period.</li>
+      </ul>
+      <p>99 of the 1,295 computable systems clear all four tests. The published <a href="https://github.com/cbetz/trove/blob/main/artifacts/community_benefit_gap_2022.csv">CSV</a> holds everything that doesn't, plus a wider set: <strong>1,334 rows</strong> — every EIN matched across HCRIS, Schedule H, and the crosswalk — of which <strong>1,295 are computable</strong> (both figures present, so a difference can be calculated) and searchable here. The remaining 39 matched but have a blank Schedule H 7a. The ranked index is committed at <a href="https://github.com/cbetz/trove/blob/main/artifacts/charity_care_gap_index_2022.md">charity_care_gap_index_2022.md</a>, and the full funnel with every caveat is in the <a href="https://github.com/cbetz/trove/blob/main/artifacts/community_benefit_gap_2022_summary.md">method summary</a>.</p>
+      <p><strong>The comparison is net-to-net.</strong> The IRS figure is Schedule H Part I line 7a column (e), <em>net</em> community benefit expense (financial assistance at cost, less direct offsetting revenue); the CMS figure is the S-10 cost of charity care, net of partial patient payments. Comparing net to net avoids the gross-vs-net illusion — though the two "net" definitions still aren't identical, so a residual difference is expected even for a hospital reporting both correctly. The <strong>%</strong> shown throughout is the difference as a share of the larger of the two figures.</p>
+    </details>
+    <details style="margin-top: 0.85rem;">
+      <summary>Why HCRIS S-10 charity care cost ≠ Schedule H Part I 7a, even when both are reported correctly</summary>
+      <ul>
+        <li><strong>Definitional differences.</strong> The two forms bound "financial assistance" / "charity care" differently — for example, how uninsured discounts are classified.</li>
+        <li><strong>Cost-to-charge ratio (CCR) handling.</strong> HCRIS S-10 applies a hospital-wide CCR; Schedule H allows different cost-step-down approaches.</li>
+        <li><strong>Charity care policy boundaries.</strong> Hospitals can categorize the same patient case as charity care, bad debt, or contractual allowance — moving cost between lines.</li>
+        <li><strong>S-10 data quality.</strong> The reliability and completeness of Worksheet S-10 charity-care reporting has been repeatedly flagged (e.g., by MedPAC), so a gap can simply mean one figure — often the S-10 side — is mis- or under-reported. This is a leading reason to open both source filings rather than treat a gap as settled.</li>
+        <li><strong>Multi-facility aggregation.</strong> A single 990 EIN often covers several HCRIS-reporting facilities. (The index above removes these; the full search below includes them, flagged per row.)</li>
+        <li><strong>Non-Medicare hospitals.</strong> S-10 charity care is all-payer, so low Medicare volume does <em>not</em> shrink it — but a few children's and specialty hospitals participate in Medicare so little that they file no Medicare cost report at all, or an S-10 with little in it. Treat a near-zero S-10 as suspect rather than a real zero.</li>
+      </ul>
+    </details>
+    <details style="margin-top: 0.85rem;">
+      <summary>The HCRIS-vs-990 fiscal year alignment problem</summary>
+      <p>HCRIS uses the federal fiscal year as a reporting cycle, not as a fiscal period. The file labeled "FY2023" contains hospital reports submitted during federal fiscal year 2023 — but the periods those reports cover vary by hospital fiscal calendar. About <strong>29%</strong> of the 1,295 computable matched systems are period-aligned within 1 month; about 65% are exactly 12 months off. The index above uses only aligned rows. When you look up any hospital in the full search, the detail card shows the period-alignment status as a per-row signal — don't use a misaligned row to infer a direct like-period difference.</p>
+      <p><strong>Coming in v2:</strong> per-hospital matching across HCRIS reporting cycles 2022/2023/2024 to find the report whose period actually matches each hospital's TY2022 990. This will substantially expand the well-aligned set.</p>
+    </details>
+    <details style="margin-top: 0.85rem;">
+      <summary>Home-county SVI proxy (Social Vulnerability Index)</summary>
+      <p>Each detail card shows a Social Vulnerability Index value for the hospital's <em>home county</em>, sourced from CDC/ATSDR's 2022 SVI release (overall summary rank <code>RPL_THEMES</code>, 0–100). Higher percentile = more vulnerable. <strong>This is a proxy, not a true service-area measure</strong> — actual catchment areas can extend well beyond the home county. Coverage: ~98% of matched systems. Source: <a href="https://www.atsdr.cdc.gov/place-health/php/svi/index.html">CDC/ATSDR SVI</a>.</p>
+    </details>
+    <details style="margin-top: 0.85rem;">
+      <summary>Coverage, validation, and known limits</summary>
+      <ul>
+        <li><strong>Validation:</strong> Tampa General, Boston Medical Center, Baptist Medical Center (Jacksonville), and Cook Children's were re-verified against their actual TY2022 Form 990 Schedule H filings — the "Told the IRS" figure matches to the dollar in every case. Yale New Haven was confirmed on identity and expense scale (its exact 7a figure sits behind ProPublica's rate limiter, but nothing contradicts it). Bug reports welcome at the GitHub issues link.</li>
+        <li><strong>Crosswalk:</strong> 3,079 of 6,042 HCRIS hospitals appear in CBI's December 2024 crosswalk; the unmatched ~50% are mostly for-profit and government hospitals (no 990) plus hospitals not in CBI's frozen vintage.</li>
+        <li><strong>Time window:</strong> HCRIS Fiscal Year 2023 paired with 990 Tax Year 2022, ingested across IRS release years 2024, 2025, and 2026.</li>
+        <li><strong>This is a reference tool.</strong> A difference in any given row does not by itself say whether either filing is wrong. The value is making the cross-form view computable at all, where previously every researcher had to reconstruct it from raw filings.</li>
+      </ul>
+    </details>
+  </section>
+
+  <section class="narrow">
+    <h2>Ask Claude about any hospital's filings</h2>
+    <p>The <a href="/skills/hcris-analyst/"><code>hcris-analyst</code></a> Claude Code skill answers natural-language questions about hospital financials by querying the published data directly — so answers are grounded in the actual filings, not what a model half-remembers. Install the trove plugin:</p>
+<pre><code>/plugin marketplace add anthropics/claude-plugins-community
+/plugin install trove@claude-community</code></pre>
+    <p>Restart Claude Code, then ask things like:</p>
+    <ul>
+      <li><em>"Which nonprofit hospitals reported very different charity care to CMS vs. the IRS for TY2022?"</em></li>
+      <li><em>"Show me a profile of [hospital name, CCN, or EIN]"</em></li>
+      <li><em>"Why might HCRIS S-10 charity care differ from Schedule H 7a for the same hospital?"</em></li>
+      <li><em>"Has [hospital] amended its TY2022 990 across IRS release years?"</em></li>
+    </ul>
+    <p>Source at <a href="https://github.com/cbetz/trove/tree/main/skills/hcris-analyst">github.com/cbetz/trove/tree/main/skills/hcris-analyst</a>.</p>
+  </section>
+
+  <section class="narrow">
+    <h2>Get the data</h2>
+    <p>Everything here is public-domain source data, MIT-licensed code. Download the full table or reproduce it:</p>
+    <p><a href="https://github.com/cbetz/trove/blob/main/artifacts/charity_care_gap_index_2022.md">Gap Index — 99 ranked rows (Markdown)</a> · <a href="/data/charity_care_gap_index_2022.json">the same 99 (JSON)</a> · <a href="/data/community_benefit_gap_2022.csv">Full matched table — 1,334 rows (CSV)</a> · <a href="/data/community_benefit_gap_2022.parquet">the same table (Parquet)</a></p>
+<pre><code>git clone https://github.com/cbetz/trove
+cd trove &amp;&amp; uv sync --all-packages
+uv run python scripts/build_gap_dataset.py   # full table
+uv run python scripts/build_gap_index.py     # this index</code></pre>
+  </section>
+
+  <footer>
+    <p><strong>Charity Care Gap Index · HCRIS FY2023 × IRS 990 Schedule H TY2022.</strong> Built by <a href="https://github.com/cbetz">Chris Betz</a> on personal time. Not affiliated with my employer; opinions my own. Bugs and methodology questions: <a href="https://github.com/cbetz/trove/issues">github.com/cbetz/trove/issues</a>.</p>
+    <p>More trove: <a href="/notes/">notes</a> · <a href="/docs/">docs</a> · <a href="/drugs/">FDA drug approvals</a>.</p>
+    <p>More from Chris: <a href="https://cbetz.com">cbetz.com</a> · <a href="https://x.com/thechrisbetz">@thechrisbetz</a> on X · <a href="https://github.com/cbetz">github.com/cbetz</a>.</p>
+    <p>Crosswalk: <a href="https://www.communitybenefitinsight.org/">Community Benefit Insight</a> (RTI / RWJF, frozen Dec 2024). SVI: <a href="https://www.atsdr.cdc.gov/place-health/php/svi/index.html">CDC/ATSDR Social Vulnerability Index 2022</a>. 990 deep links via <a href="https://projects.propublica.org/nonprofits/">ProPublica Nonprofit Explorer</a>.</p>
+    <div class="row">
+      <span>MIT code · public-domain data · <a href="https://github.com/cbetz/trove">github.com/cbetz/trove</a></span>
+      <span>
+        <a href="https://github.com/cbetz/trove/blob/main/artifacts/community_benefit_gap_2022.csv">CSV</a> ·
+        <a href="https://github.com/cbetz/trove/blob/main/artifacts/community_benefit_gap_2022_summary.md">Method</a>
+      </span>
+    </div>
+  </footer>
+
+  <div class="toast" id="toast">Link copied</div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const usd = (v) => {
+  if (v == null || Number.isNaN(v)) return "—";
+  const sign = v < 0 ? "−" : "";
+  const a = Math.abs(v);
+  if (a >= 1e9) return `${sign}$${(a/1e9).toFixed(1)}B`;
+  if (a >= 1e6) return `${sign}$${(a/1e6).toFixed(1)}M`;
+  if (a >= 1e3) return `${sign}$${(a/1e3).toFixed(0)}K`;
+  return `${sign}$${a.toFixed(0)}`;
+};
+const usdSigned = (v) => {
+  if (v == null || Number.isNaN(v)) return "—";
+  if (v === 0) return "$0";
+  return (v > 0 ? "+" : "") + usd(v);
+};
+const pct = (v, decimals = 1) => {
+  if (v == null || Number.isNaN(v)) return "—";
+  return `${(v >= 0 ? "+" : "")}${(v * 100).toFixed(decimals)}%`;
+};
+const titleCase = (s) => {
+  if (!s) return "";
+  const letters = s.match(/[a-zA-Z]/g);
+  if (!letters) return s;
+  const upper = letters.filter(c => c === c.toUpperCase()).length;
+  if (upper / letters.length < 0.8) return s;
+  return s.replace(/\w\S*/g, w => w[0].toUpperCase() + w.slice(1).toLowerCase());
+};
+const monthsBetween = (a, b) => {
+  if (!a || !b) return null;
+  const da = new Date(a), db = new Date(b);
+  if (Number.isNaN(da.getTime()) || Number.isNaN(db.getTime())) return null;
+  return Math.round(Math.abs((da - db) / (1000 * 60 * 60 * 24 * 30.44)));
+};
+const ordinal = (n) => {
+  const mod100 = n % 100;
+  if (mod100 >= 11 && mod100 <= 13) return `${n}th`;
+  switch (n % 10) { case 1: return `${n}st`; case 2: return `${n}nd`; case 3: return `${n}rd`; default: return `${n}th`; }
+};
+const formatMonth = (s) => {
+  if (!s) return "—";
+  const d = new Date(s);
+  return Number.isNaN(d.getTime()) ? s : d.toLocaleDateString("en-US", { year: "numeric", month: "short" });
+};
+const einKey = (e) => String(parseInt(e, 10));
+
+let DATA = null;         // full lookup: { totals, rows }
+let INDEX = null;        // { filter, counts, rows } — the clean leaderboard
+let BYEIN = {};          // einKey -> full row
+let QUERY = "";
+let SELECTED_EIN = null;
+let BOARD_EXPANDED = false;
+const MAX_MATCHES = 8;
+const BOARD_TOP = 25;
+
+async function init() {
+  const [full, index] = await Promise.all([
+    fetch("/data/community_benefit_gap_2022.json?v=20260712-index").then(r => r.json()),
+    fetch("/data/charity_care_gap_index_2022.json?v=20260712-index").then(r => r.json()),
+  ]);
+  DATA = full;
+  INDEX = index;
+  BYEIN = {};
+  DATA.rows.forEach(r => { BYEIN[einKey(r.ein)] = r; });
+  renderHero();
+  renderBoard();
+  bindControls();
+  syncFromHash();
+  window.addEventListener("hashchange", syncFromHash);
+}
+
+function renderHero() {
+  $("#stat-clean").textContent = INDEX.counts.clean_aligned.toLocaleString();
+  const big = INDEX.counts.clean_aligned_over_50pct;
+  $("#stat-big").textContent = `${big} of ${INDEX.counts.clean_aligned}`;
+  $("#stat-searchable").textContent = DATA.totals.computable.toLocaleString();
+}
+
+function renderBoard() {
+  const body = $("#board-body");
+  const rows = INDEX.rows;
+  const shown = BOARD_EXPANDED ? rows : rows.slice(0, BOARD_TOP);
+  body.innerHTML = shown.map((r, i) => {
+    const cls = r.gap > 0 ? "pos" : r.gap < 0 ? "neg" : "";
+    const pctTxt = r.gap_pct != null ? `${Math.round(r.gap_pct * 100)}%` : "—";
+    return `<tr data-ein="${einKey(r.ein)}">
+      <td class="l b-rank">${i + 1}</td>
+      <td class="l b-name">${escapeHtml(r.name)}</td>
+      <td>${usd(r.irs_7a)}</td>
+      <td>${usd(r.cms_s10)}</td>
+      <td class="${cls}">${usdSigned(r.gap)}</td>
+      <td class="b-pct">${pctTxt}</td>
+    </tr>`;
+  }).join("");
+  body.querySelectorAll("tr").forEach(tr => {
+    tr.addEventListener("click", () => select(tr.dataset.ein));
+  });
+  const toggle = $("#board-toggle");
+  if (rows.length > BOARD_TOP) {
+    toggle.hidden = false;
+    $("#board-total").textContent = rows.length;
+    toggle.textContent = BOARD_EXPANDED ? "Show top 25 only ↑" : `Show all ${rows.length} →`;
+  }
+}
+
+function bindControls() {
+  $("#q").addEventListener("input", (e) => {
+    QUERY = e.target.value.trim().toLowerCase();
+    SELECTED_EIN = null;
+    renderSearch();
+  });
+  $("#board-toggle").addEventListener("click", () => {
+    BOARD_EXPANDED = !BOARD_EXPANDED;
+    renderBoard();
+  });
+}
+
+function select(eKey) {
+  SELECTED_EIN = eKey;
+  QUERY = "";
+  $("#q").value = "";
+  if (location.hash !== `#h=${eKey}`) location.hash = `#h=${eKey}`;
+  renderSearch();
+  renderDetail();
+  $("#detail-mount").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function syncFromHash() {
+  const m = location.hash.match(/^#h=(\d+)$/);
+  if (m && BYEIN[m[1]]) {
+    SELECTED_EIN = m[1];
+    renderDetail();
+    renderSearch();
+  } else if (!location.hash) {
+    SELECTED_EIN = null;
+    renderDetail();
+  }
+}
+
+function findMatches() {
+  if (!QUERY) return [];
+  return DATA.rows.filter(r =>
+    (r.system && r.system.toLowerCase().includes(QUERY)) ||
+    (r.facility && r.facility.toLowerCase().includes(QUERY)) ||
+    (r.ein && r.ein.includes(QUERY))
+  ).slice(0, MAX_MATCHES);
+}
+
+function renderSearch() {
+  const matchesEl = $("#matches");
+  const hint = $("#empty-hint");
+  if (!QUERY) {
+    matchesEl.hidden = true;
+    matchesEl.innerHTML = "";
+    hint.hidden = !!SELECTED_EIN;
+    return;
+  }
+  hint.hidden = true;
+  const matches = findMatches();
+  if (matches.length === 0) {
+    matchesEl.innerHTML = `<div class="match-empty">No matches for &ldquo;${escapeHtml(QUERY)}&rdquo;.</div>`;
+  } else {
+    matchesEl.innerHTML = matches.map(r => `
+      <button class="match" data-ein="${einKey(r.ein)}">
+        <div class="match-name">${escapeHtml(titleCase(r.system || "(unknown)"))}</div>
+        <div class="match-sub">${escapeHtml(titleCase(r.facility || ""))}${r.ccns > 1 ? ` · ${r.ccns} facilities` : ""} · EIN ${r.ein}</div>
+      </button>`).join("");
+    matchesEl.querySelectorAll(".match").forEach(btn => {
+      btn.addEventListener("click", () => select(btn.dataset.ein));
+    });
+  }
+  matchesEl.hidden = false;
+}
+
+function renderDetail() {
+  const mount = $("#detail-mount");
+  if (!SELECTED_EIN) { mount.innerHTML = ""; return; }
+  const r = BYEIN[SELECTED_EIN];
+  if (!r) { mount.innerHTML = ""; return; }
+  const gapClass = r.gap > 0 ? "pos" : r.gap < 0 ? "neg" : "";
+  const interp = r.gap > 0
+    ? "Reported more charity care to CMS (S-10) than financial assistance to the IRS (Schedule H 7a)"
+    : r.gap < 0
+      ? "Reported more financial assistance to the IRS (Schedule H 7a) than charity care to CMS (S-10)"
+      : "The two reported amounts are identical";
+  const months = monthsBetween(r.hcris_fy_end, r.period_end);
+  const propublicaUrl = `https://projects.propublica.org/nonprofits/organizations/${parseInt(r.ein, 10)}`;
+  const idxRow = INDEX.rows.find(x => einKey(x.ein) === SELECTED_EIN);
+  const inIndex = !!idxRow;
+  const primaryName = idxRow
+    ? idxRow.name
+    : (r.ccns === 1 && r.facility ? titleCase(r.facility) : titleCase(r.system || r.facility || "(unknown)"));
+  const legalName = titleCase(r.system || "");
+  const filesAs = (legalName && legalName.toLowerCase() !== primaryName.toLowerCase())
+    ? ` · files Form 990 as ${escapeHtml(legalName)}` : "";
+  const ccnSignal = r.ccns > 1
+    ? `${r.ccns} facilities rolled up under one EIN — system-level aggregation may smooth facility-level reporting differences`
+    : `1 facility — clean unit-of-analysis match`;
+  const periodSignal = months == null
+    ? "fiscal-year alignment unknown"
+    : months === 0
+      ? "HCRIS fiscal year and 990 tax period end the same month — comparing the same year"
+      : months === 1
+        ? "HCRIS fiscal year and 990 tax period end one month apart — closely aligned"
+        : `${months}-month difference between HCRIS fiscal year end and 990 tax period end — the two filings likely cover different years`;
+  const oneZero = (r.hcris_charity === 0 || r.fa_990 === 0)
+    ? "<strong>One field is zero.</strong> Often a children's hospital or specialty hospital that doesn't bill Medicare in volume, where the HCRIS S-10 amount can legitimately be zero."
+    : null;
+  const sviSignal = r.svi_overall_pct != null
+    ? (() => {
+        const p = Math.round(r.svi_overall_pct);
+        const band = p >= 80 ? "80th+ percentile SVI band" : p >= 60 ? "60th–79th percentile SVI band" : p >= 40 ? "40th–59th percentile SVI band" : p >= 20 ? "20th–39th percentile SVI band" : "below-20th percentile SVI band";
+        const facility_note = r.ccns > 1 ? "median across the system's facility home counties" : "the facility's home county";
+        return `<strong>${ordinal(p)} national percentile</strong> — ${band} (${facility_note})`;
+      })()
+    : null;
+
+  mount.innerHTML = `
+    <div class="detail" id="detail-card">
+      <div class="detail-head">
+        <div>
+          <p class="detail-title">${escapeHtml(primaryName)}</p>
+          <p class="detail-sub">EIN ${r.ein} · ${r.ccns} CCN${r.ccns === 1 ? "" : "s"}${filesAs}${inIndex ? " · in the clean index" : ""}</p>
+        </div>
+        <div class="detail-actions">
+          <button class="linkish" id="copy-link">Copy link</button>
+        </div>
+      </div>
+      <div class="detail-grid">
+        <div>
+          <h3>Told the IRS — 990 Schedule H</h3>
+          <div class="detail-row"><span>Financial assistance at cost (7a)</span><span>${usd(r.fa_990)}</span></div>
+          <div class="detail-row"><span>Total community benefit (7k)</span><span>${usd(r.cb_990)}</span></div>
+          <div class="detail-row"><span>Total expenses</span><span>${usd(r.exp_990)}</span></div>
+          <div class="detail-row"><span>Tax period end</span><span>${formatMonth(r.period_end)}</span></div>
+        </div>
+        <div>
+          <h3>Told CMS — HCRIS Worksheet S-10</h3>
+          <div class="detail-row"><span>Charity care cost</span><span>${usd(r.hcris_charity)}</span></div>
+          <div class="detail-row"><span>Uncompensated care cost</span><span>${usd(r.hcris_uncomp)}</span></div>
+          <div class="detail-row"><span>Total operating expenses</span><span>${usd(r.hcris_opex)}</span></div>
+          <div class="detail-row"><span>Fiscal year end</span><span>${formatMonth(r.hcris_fy_end)}</span></div>
+        </div>
+      </div>
+      <div class="detail-gap">
+        <span>Difference (CMS − IRS)</span>
+        <span class="${gapClass}">${usdSigned(r.gap)} <span style="font-weight: 400; color: var(--muted); font-size: 0.85em;">(${pct(r.gap_pct)})</span></span>
+      </div>
+      <div class="detail-signals">
+        <div class="signal"><span class="signal-label">Cross-form readout:</span><span>${interp}.</span></div>
+        <div class="signal"><span class="signal-label">Period alignment:</span><span>${periodSignal}.</span></div>
+        <div class="signal"><span class="signal-label">Aggregation:</span><span>${ccnSignal}.</span></div>
+        ${sviSignal ? `<div class="signal"><span class="signal-label">Home-county SVI:</span><span>${sviSignal}.</span></div>` : ""}
+        ${oneZero ? `<div class="signal"><span class="signal-label">Note:</span><span>${oneZero}</span></div>` : ""}
+      </div>
+      <div class="detail-links">
+        <a href="${propublicaUrl}" target="_blank" rel="noopener">View the 990 on ProPublica Nonprofit Explorer ↗</a>
+      </div>
+    </div>`;
+
+  const copyBtn = document.getElementById("copy-link");
+  if (copyBtn) copyBtn.addEventListener("click", () => {
+    const url = `${location.origin}${location.pathname}#h=${SELECTED_EIN}`;
+    navigator.clipboard?.writeText(url).then(showToast, showToast);
+  });
+}
+
+let toastTimer = null;
+function showToast() {
+  const t = $("#toast");
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 1600);
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+}
+
+init().catch(err => {
+  $("#board-body").innerHTML = `<tr><td colspan="6" class="match-empty">Failed to load data: ${escapeHtml(err.message)}</td></tr>`;
+});
+</script>
+  <script defer src="/_vercel/insights/script.js"></script>
+  <script defer src="/_vercel/speed-insights/script.js"></script>
+</body>
+</html>
